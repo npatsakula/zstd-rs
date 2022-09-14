@@ -4,8 +4,7 @@ use std::{env, fs};
 
 #[cfg(feature = "bindgen")]
 fn generate_bindings(defs: Vec<&str>, headerpaths: Vec<PathBuf>) {
-    let bindings = bindgen::Builder::default()
-        .header("zstd.h");
+    let bindings = bindgen::Builder::default().header("zstd.h");
     #[cfg(feature = "zdict_builder")]
     let bindings = bindings.header("zdict.h");
     let bindings = bindings
@@ -92,7 +91,10 @@ fn compile_zstd() {
         #[cfg(feature = "legacy")]
         "zstd/lib/legacy",
     ] {
-        let mut entries: Vec<_> = fs::read_dir(dir).unwrap().map(|r| r.unwrap().path()).collect();
+        let mut entries: Vec<_> = fs::read_dir(dir)
+            .unwrap()
+            .map(|r| r.unwrap().path())
+            .collect();
         entries.sort();
         for path in entries {
             // Skip xxhash*.c files: since we are using the "PRIVATE API"
@@ -118,7 +120,8 @@ fn compile_zstd() {
         config.file("zstd/lib/decompress/huf_decompress_amd64.S");
     }
 
-    let is_wasm_unknown_unknown = env::var("TARGET").ok() == Some("wasm32-unknown-unknown".into());
+    let is_wasm_unknown_unknown =
+        env::var("TARGET").ok() == Some("wasm32-unknown-unknown".into());
 
     if is_wasm_unknown_unknown {
         println!("cargo:rerun-if-changed=wasm-shim/stdlib.h");
@@ -179,7 +182,10 @@ fn compile_zstd() {
     // Compile!
     config.compile("libzstd.a");
 
-    let src = env::current_dir().unwrap().join("zstd").join("lib");
+    let src = env::var("ZSTDLIB_INCLUDE")
+        .map(Into::<PathBuf>::into)
+        .unwrap_or_else(|_| env::current_dir().unwrap().join("zstd").join("lib").join("include"));
+
     let dst = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     let include = dst.join("include");
     fs::create_dir_all(&include).unwrap();
